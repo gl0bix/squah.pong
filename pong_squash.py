@@ -44,7 +44,8 @@ class Ball:
 class Paddle:
     body: Rect
     WIDTH = 20
-    HEIGHT = 100
+    HEIGHT = 150
+    
 
     def __init__(self, y):
         self.y = y
@@ -96,7 +97,7 @@ game_over_text = game_over_font.render("GAME OVER", False, go_color)
 
 game_runs = True
 clock = pygame.time.Clock()
-fps = 1000
+fps = 800
 
 # global methods
 def update_hud(lives, score):
@@ -124,11 +125,13 @@ while game_runs:
     pygame.display.flip()
 
     # update paddle and ball
-    if pygame.Rect.collidepoint(paddle.body, (ball.x, ball.y)):
+    if pygame.Rect.collidepoint(paddle.body, (ball.x + ball.RADIUS, ball.y)):
         ball.update(True)
+        score += 1
+        paddle.update()
     else:
         ball.update(False)
-    paddle.update()
+        paddle.update()
 
     # lives and gameover
     if ball.x > WIDTH:
