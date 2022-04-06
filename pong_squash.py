@@ -30,7 +30,8 @@ ball_start_vy = VELOCITY
 
 # other
 miss_sound = pygame.mixer.Sound('sounds/scream.wav')
-
+lives = 2
+score = 0
 
 # screen
 screen = pygame.display.set_mode(size)
@@ -135,8 +136,6 @@ pygame.draw.rect(screen, fg_color, pygame.Rect((0, 0), (WIDTH, BORDER)))
 pygame.draw.rect(screen, fg_color, pygame.Rect(0, 0, BORDER, HEIGHT))
 pygame.draw.rect(screen, fg_color, pygame.Rect(0, HEIGHT - BORDER, WIDTH, BORDER))
 
-lives = 5
-score = 0
 game_over_text = game_over_font.render("GAME OVER", False, go_color)
 
 # action -> alter
@@ -193,15 +192,16 @@ while game_runs:
                 pygame.time.set_timer(USEREVENT, 20)
                 update_hud()
 
+            # score and gameover
             if ball.rect.centerx > WIDTH:
-                miss_sound.play()
                 lives -= 1
                 if lives > 0:
                     ball.respawn()
+                    miss_sound.play()
                 elif lives <= 0:
                     screen.blit(game_over_text, (WIDTH // 2 - 100, HEIGHT // 2 - 100))
+                    ball.kill()
 
-            break
 
     # clock tick
     time_passed = clock.tick(fps)
