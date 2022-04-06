@@ -1,106 +1,154 @@
 import pygame
+from pygame.locals import *
 
-# vars
-from pygame import Rect
+# constants
 
 WIDTH = 1200
 HEIGHT = 600
 BORDER = 20
-VELOCITY = 1
+VELOCITY = 10
 
-# classes
-class Ball:
-    RADIUS = 10
-
-    def __init__(self, x, y, vx, vy):
-        self.x = x
-        self.y = y
-        self.vx = vx
-        self.vy = vy
-
-    def show(self, color):
-        global screen
-        pygame.draw.circle(screen, color, (self.x, self.y), self.RADIUS)
-
-    def update(self, is_paddled):
-        global bg_color, hud_color
-
-        new_x = self.x + self.vx
-        new_y = self.y + self.vy
-
-        if new_x < BORDER + self.RADIUS:
-            self.vx = -self.vx
-        elif new_y < BORDER + self.RADIUS or new_y > HEIGHT - BORDER - self.RADIUS:
-            self.vy = -self.vy
-        elif is_paddled:
-            self.vx = -self.vx
-        else:
-            self.show(bg_color)
-            self.x += self.vx
-            self.y += self.vy
-            self.show(hud_color)
-
-
-class Paddle:
-    body: Rect
-    WIDTH = 20
-    HEIGHT = 150
-    
-
-    def __init__(self, y):
-        self.y = y
-
-
-    def show(self, color):
-        global screen
-        self.body =  pygame.Rect((WIDTH - self.WIDTH, self.y - self.HEIGHT // 2, self.WIDTH, self.HEIGHT))
-        pygame.draw.rect(screen, color, self.body)
-
-    def update(self):
-        self.show(bg_color)
-        self.y = pygame.mouse.get_pos()[1]
-        self.show(fg_color)
-
-
-# create objects
-ball_start_x = WIDTH - Ball.RADIUS - 150
-ball_start_y = HEIGHT // 2
-ball_start_vx = -VELOCITY
-ball_start_vy = VELOCITY
-ball = Ball(ball_start_x, ball_start_y, ball_start_vx, ball_start_vy)
-paddle = Paddle(HEIGHT // 2)
-
-# init
 pygame.init()
 
+# display
 lives_font = pygame.font.SysFont('helvetica', 14, True, False)
 score_font = pygame.font.SysFont('helvetica', 12, False, False)
 game_over_font = pygame.font.SysFont('helvetica', 30, True, False)
 
-# screen
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+# colors
 bg_color = pygame.Color("black")
 fg_color = pygame.Color("white")
 hud_color = pygame.Color("yellow")
 go_color = pygame.Color("red")
+size = (WIDTH, HEIGHT)
+
+# ball params
+ball_start_x = WIDTH - 150
+ball_start_y = HEIGHT // 2
+ball_start_vx = -VELOCITY
+ball_start_vy = VELOCITY
+
+# other
+miss_sound = pygame.mixer.Sound('sounds/scream.wav')
+
+
+# screen
+screen = pygame.display.set_mode(size)
+pygame.display.set_caption('Squash pong')
+
+
+# entities
+class Ball(pygame.sprite.Sprite):
+    RADIUS = 10
+
+    def __init__(self, x, y, vx, vy):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load('images/ball.png')
+        self.image = pygame.transform.scale(self.image, (20, 20))
+        self.rect = self.image.get_rect()
+        self.sound = pygame.mixer.Sound('sounds/tock.mp3')
+
+        self.rect.center = (x, y)
+        self.vx = vx
+        self.vy = vy
+
+    def tock(self):
+        self.sound.play()
+
+    def hit(self, r):
+        return self.rect.colliderect(r)
+
+    def update(self):
+        self.rect.center = (self.rect.centerx + self.vx, self.rect.centery + self.vy)
+
+    def respawn(self):
+        self.rect.center = (ball_start_x, ball_start_y)
+        self.vx = -VELOCITY
+        self.vy = VELOCITY
+
+
+class Paddle(pygame.sprite.Sprite):
+    WIDTH = 20
+    HEIGHT = 150
+
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((self.WIDTH, self.HEIGHT))
+        self.image.fill(fg_color)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = WIDTH - self.WIDTH
+
+    def update(self):
+        self.rect.centery = pygame.mouse.get_pos()[1]
+
+
+class TopBorder(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((WIDTH, 20))
+        self.image.fill(fg_color)
+        self.rect = self.image.get_rect()
+        self.rect.top = 0
+        self.rect.left = 0
+
+
+class BottomBorder(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((WIDTH, 20))
+        self.image.fill(fg_color)
+        self.rect = self.image.get_rect()
+        self.rect.top = HEIGHT - 20
+        self.rect.left = 0
+
+
+class LeftBorder(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((20, HEIGHT))
+        self.image.fill(fg_color)
+        self.rect = self.image.get_rect()
+        self.rect.top = 0
+        self.rect.left = 0
+
+
+# create objects
+ball = Ball(ball_start_x, ball_start_y, ball_start_vx, ball_start_vy)
+paddle = Paddle()
+top_border = TopBorder()
+bottom_border = BottomBorder()
+left_border = LeftBorder()
+
+bg = pygame.Surface(size=screen.get_size())
+bg.fill(bg_color)
+
+sprite_group_elements = pygame.sprite.Group()
+sprite_group_elements.add(ball)
+sprite_group_elements.add(paddle)
+
+sprite_group_borders = pygame.sprite.Group()
+sprite_group_borders.add(top_border)
+sprite_group_borders.add(bottom_border)
+sprite_group_borders.add(left_border)
 
 pygame.draw.rect(screen, fg_color, pygame.Rect((0, 0), (WIDTH, BORDER)))
 pygame.draw.rect(screen, fg_color, pygame.Rect(0, 0, BORDER, HEIGHT))
 pygame.draw.rect(screen, fg_color, pygame.Rect(0, HEIGHT - BORDER, WIDTH, BORDER))
 
-ball.show(hud_color)
-paddle.show(fg_color)
 lives = 5
 score = 0
-
 game_over_text = game_over_font.render("GAME OVER", False, go_color)
 
+# action -> alter
 game_runs = True
 clock = pygame.time.Clock()
 fps = 800
 
+pygame.time.set_timer(USEREVENT, 20)
+
+
 # global methods
-def update_hud(lives, score):
+def update_hud():
     pygame.draw.rect(screen, bg_color, pygame.Rect((30, 30), (100, 100)))
 
     if lives >= 0:
@@ -113,39 +161,50 @@ def update_hud(lives, score):
     score_text = score_font.render(f"Score: {score}", False, hud_color)
     screen.blit(score_text, (30, 60))
 
+
 # gameloop
-
 while game_runs:
-    is_collision = False
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            game_runs = False
+        elif event.type == USEREVENT:
+            if ball.hit(paddle):
+                ball.tock()
+                ball.vx = -ball.vx
+                score += 1
+                ball.update()
+            elif ball.hit(left_border):
+                ball.tock()
+                ball.vx = -ball.vx
+                ball.update()
+            elif ball.hit(top_border):
+                ball.tock()
+                ball.vy = -ball.vy
+                ball.update()
+            elif ball.hit(bottom_border):
+                ball.tock()
+                ball.vy = -ball.vy
+                ball.update()
+            else:
+                screen.blit(bg, (0, 0))
+                sprite_group_elements.update()
+                sprite_group_elements.draw(screen)
+                sprite_group_borders.draw(screen)
+                pygame.time.set_timer(USEREVENT, 20)
+                update_hud()
 
-    e = pygame.event.poll()
-    if e.type == pygame.QUIT:
-        game_runs = False
+            if ball.rect.centerx > WIDTH:
+                miss_sound.play()
+                lives -= 1
+                if lives > 0:
+                    ball.respawn()
+                elif lives <= 0:
+                    screen.blit(game_over_text, (WIDTH // 2 - 100, HEIGHT // 2 - 100))
 
-    pygame.display.flip()
-
-    # update paddle and ball
-    if pygame.Rect.collidepoint(paddle.body, (ball.x + ball.RADIUS, ball.y)):
-        ball.update(True)
-        score += 1
-        paddle.update()
-    else:
-        ball.update(False)
-        paddle.update()
-
-    # lives and gameover
-    if ball.x > WIDTH:
-        lives -= 1
-        if lives > 0:
-            ball = Ball(ball_start_x, ball_start_y, ball_start_vx, ball_start_vy)
-        elif lives <= 0:
-            screen.blit(game_over_text, (WIDTH // 2 - 100, HEIGHT // 2 - 100))
-
-    # show hud
-    update_hud(lives, score)
+            break
 
     # clock tick
     time_passed = clock.tick(fps)
-
+    pygame.display.flip()
 
 pygame.quit()
