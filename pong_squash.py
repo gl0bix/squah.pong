@@ -1,12 +1,14 @@
 import pygame
 from pygame.locals import *
 
+import random as rd
+
 # constants
 
 WIDTH = 1200
 HEIGHT = 600
 BORDER = 20
-VELOCITY = 10
+VELOCITY = 5
 
 pygame.init()
 
@@ -24,14 +26,15 @@ size = (WIDTH, HEIGHT)
 
 # ball params
 ball_start_x = WIDTH - 150
-ball_start_y = HEIGHT // 2
+ball_start_y = lambda: rd.randint(0, HEIGHT)
 ball_start_vx = -VELOCITY
 ball_start_vy = VELOCITY
 
 # other
 miss_sound = pygame.mixer.Sound('sounds/scream.wav')
-lives = 2
-score = 0
+lives = 5
+score = old_score = 0
+score_points = 1
 
 # screen
 screen = pygame.display.set_mode(size)
@@ -63,7 +66,7 @@ class Ball(pygame.sprite.Sprite):
         self.rect.center = (self.rect.centerx + self.vx, self.rect.centery + self.vy)
 
     def respawn(self):
-        self.rect.center = (ball_start_x, ball_start_y)
+        self.rect.center = (ball_start_x, ball_start_y())
         self.vx = -VELOCITY
         self.vy = VELOCITY
 
@@ -114,7 +117,7 @@ class LeftBorder(pygame.sprite.Sprite):
 
 
 # create objects
-ball = Ball(ball_start_x, ball_start_y, ball_start_vx, ball_start_vy)
+ball = Ball(ball_start_x, ball_start_y(), ball_start_vx, ball_start_vy)
 paddle = Paddle()
 top_border = TopBorder()
 bottom_border = BottomBorder()
@@ -141,9 +144,8 @@ game_over_text = game_over_font.render("GAME OVER", False, go_color)
 # action -> alter
 game_runs = True
 clock = pygame.time.Clock()
-fps = 800
-
-pygame.time.set_timer(USEREVENT, 20)
+framerate = 200
+pygame.time.set_timer(USEREVENT, 10)
 
 
 # global methods
@@ -170,7 +172,12 @@ while game_runs:
             if ball.hit(paddle):
                 ball.tock()
                 ball.vx = -ball.vx
-                score += 1
+                score += score_points
+                if score >= old_score + 5:
+                    old_score = score
+                    score_points *= 2
+                    ball.vx -= 2
+                    ball.vy += 2
                 ball.update()
             elif ball.hit(left_border):
                 ball.tock()
@@ -189,7 +196,7 @@ while game_runs:
                 sprite_group_elements.update()
                 sprite_group_elements.draw(screen)
                 sprite_group_borders.draw(screen)
-                pygame.time.set_timer(USEREVENT, 20)
+                pygame.time.set_timer(USEREVENT, 10)
                 update_hud()
 
             # score and gameover
@@ -198,13 +205,13 @@ while game_runs:
                 if lives > 0:
                     ball.respawn()
                     miss_sound.play()
+                    score_points = 1
                 elif lives <= 0:
                     screen.blit(game_over_text, (WIDTH // 2 - 100, HEIGHT // 2 - 100))
                     ball.kill()
 
-
     # clock tick
-    time_passed = clock.tick(fps)
+    clock.tick(framerate)
     pygame.display.flip()
 
 pygame.quit()
