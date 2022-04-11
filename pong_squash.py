@@ -6,7 +6,7 @@ import random as rd
 # constants
 
 WIDTH = 1200
-HEIGHT = 600
+HEIGHT = 800
 BORDER = 20
 VELOCITY = 5
 
@@ -30,11 +30,19 @@ ball_start_y = lambda: rd.randint(0, HEIGHT)
 ball_start_vx = -VELOCITY
 ball_start_vy = VELOCITY
 
+# sounds
+MISS_SOUND = pygame.mixer.Sound('sounds/miss.mp3')
+GAME_OVER_SOUND = pygame.mixer.Sound('sounds/gameover.mp3')
+LVL_UP_SOUND = pygame.mixer.Sound('sounds/lvl_up.mp3')
+
 # other
-miss_sound = pygame.mixer.Sound('sounds/scream.wav')
 lives = 5
 score = old_score = 0
-score_points = 1
+score_points = 10
+score_add = 10
+velocity_add = 2
+lvl_up = 50
+game_over = False
 
 # screen
 screen = pygame.display.set_mode(size)
@@ -48,7 +56,7 @@ class Ball(pygame.sprite.Sprite):
     def __init__(self, x, y, vx, vy):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load('images/ball.png')
-        self.image = pygame.transform.scale(self.image, (20, 20))
+        self.image = pygame.transform.scale(self.image, (40, 40))
         self.rect = self.image.get_rect()
         self.sound = pygame.mixer.Sound('sounds/tock.mp3')
 
@@ -173,11 +181,15 @@ while game_runs:
                 ball.tock()
                 ball.vx = -ball.vx
                 score += score_points
-                if score >= old_score + 5:
+                if score >= old_score + lvl_up:
+                    LVL_UP_SOUND.play()
                     old_score = score
-                    score_points *= 2
-                    ball.vx -= 2
-                    ball.vy += 2
+                    score_points += score_add
+                    ball.vx -= velocity_add
+                    if ball.vy < 0:
+                        ball_vy = ball.vx
+                    else:
+                        ball.vy = -ball.vx
                 ball.update()
             elif ball.hit(left_border):
                 ball.tock()
@@ -204,11 +216,16 @@ while game_runs:
                 lives -= 1
                 if lives > 0:
                     ball.respawn()
-                    miss_sound.play()
-                    score_points = 1
+                    MISS_SOUND.play()
+                    score_points = 10
                 elif lives <= 0:
+                    if not game_over:
+                        GAME_OVER_SOUND.play()
+                        ball.kill()
+                        paddle.kill()
+                        game_over = True
                     screen.blit(game_over_text, (WIDTH // 2 - 100, HEIGHT // 2 - 100))
-                    ball.kill()
+
 
     # clock tick
     clock.tick(framerate)
