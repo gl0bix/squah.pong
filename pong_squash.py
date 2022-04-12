@@ -1,3 +1,7 @@
+# !usr/bin/python3
+
+__author__ = "Daniel Schellenberg"
+
 import pygame
 from pygame.locals import *
 
@@ -225,7 +229,6 @@ while game_runs:
                         paddle.kill()
                         game_over = True
                     screen.blit(game_over_text, (WIDTH // 2 - 100, HEIGHT // 2 - 100))
-
 
     # clock tick
     clock.tick(framerate)
