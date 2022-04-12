@@ -36,7 +36,7 @@ GAME_OVER_SOUND = pygame.mixer.Sound('sounds/gameover.mp3')
 LVL_UP_SOUND = pygame.mixer.Sound('sounds/lvl_up.mp3')
 
 # other
-lives = 5
+lives = 3
 score = old_score = 0
 score_points = 10
 score_add = 10
